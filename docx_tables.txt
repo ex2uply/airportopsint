@@ -1,0 +1,150 @@
+
+=== TABLE 0 ===
+  ROW 0: ['PROJECT 05  ·  AIRPORT ANALYTICS']
+  ROW 1: ['Airport Operations Intelligence Platform']
+  ROW 2: ['Build a unified ops analytics hub from flight schedules, gate events, baggage tracking, and IoT sensor data']
+  ROW 3: ['Project Number: Project 5   Domain: Airport Operations & Aviation   Difficulty: Advanced   Duration: 5–6 Weeks']
+
+=== TABLE 1 ===
+  ROW 0: ['1', 'Executive Summary']
+
+=== TABLE 2 ===
+  ROW 0: ['2', 'Business Problem Statement']
+
+=== TABLE 3 ===
+  ROW 0: ['3', 'Data Sources & Formats']
+
+=== TABLE 4 ===
+  ROW 0: ['3.1.  flight_schedule.csv   [CSV — AODB export, refreshed every 15 minutes]', '3.1.  flight_schedule.csv   [CSV — AODB export, refreshed every 15 minutes]']
+  ROW 1: ['Volume', '~360 rows/refresh (180 arrivals + 180 departures)']
+  ROW 2: ['Frequency', 'Every 15 minutes from AODB via SFTP']
+  ROW 3: ['Key Fields', 'flight_id, flight_number, airline_code, airline_name, origin_iata, destination_iata, scheduled_departure, scheduled_arrival, aircraft_registration, aircraft_type, terminal, gate, status (SCH|BRD|DEP|ARR|DLY|CNX), delay_minutes, delay_reason_code, pax_count_booked']
+  ROW 4: ['Sample', '"FLT0001","AI-101","AI","Air India","DEL","BOM","2024-01-15T06:00:00","2024-01-15T08:10:00","VT-ANI","A320","T1","G12","SCH",0,"","168"']
+
+=== TABLE 5 ===
+  ROW 0: ['3.2.  gate_events.json   [JSON — Real-time Kafka / hourly file]', '3.2.  gate_events.json   [JSON — Real-time Kafka / hourly file]']
+  ROW 1: ['Volume', '~2,000 events/day', '~2,000 events/day']
+  ROW 2: ['Frequency', 'Real-time Kafka + hourly S3 landing', 'Real-time Kafka + hourly S3 landing']
+  ROW 3: ['Key Fields', 'event_id, flight_id, gate_id, terminal, event_type (GATE_ASSIGNED|GATE_OPEN|BOARDING_START|BOARDING_COMPLETE|PUSHBACK|GATE_CLOSED|\n\nGATE_RELEASED), event_ts, agent_id, remarks', 'event_id, flight_id, gate_id, terminal, event_type (GATE_ASSIGNED|GATE_OPEN|BOARDING_START|BOARDING_COMPLETE|PUSHBACK|GATE_CLOSED|\n\nGATE_RELEASED), event_ts, agent_id, remarks']
+  ROW 4: ['Sample', '{"event_id":"GE001","flight_id":"FLT0001","gate_id":"G12","event_type":"BOARDING_START","event_ts":"2024-01-15T05:25:00"}', '{"event_id":"GE001","flight_id":"FLT0001","gate_id":"G12","event_type":"BOARDING_START","event_ts":"2024-01-15T05:25:00"}']
+
+=== TABLE 6 ===
+  ROW 0: ['3.3.  baggage_scans.csv   [CSV — Baggage Information System, every 5 minutes]', '3.3.  baggage_scans.csv   [CSV — Baggage Information System, every 5 minutes]']
+  ROW 1: ['Volume', '~150,000 scans/day']
+  ROW 2: ['Frequency', 'Every 5 minutes from BIS system']
+  ROW 3: ['Key Fields', 'scan_id, bag_tag_number, passenger_id, flight_id, scan_location (CHECK_IN|SCREENING|MAKEUP_BELT|AIRCRAFT_LOAD|AIRCRAFT_UNLOAD|CAROUSEL|\nTRANSFER_BELT), scan_ts, scan_status (OK|EXCEPTION|MISREAD), connecting_flight_id (nullable)']
+  ROW 4: ['Sample', '"SCN001","BT12345678","PAX001","FLT0001","CHECK_IN","2024-01-15T04:30:00","OK",""']
+
+=== TABLE 7 ===
+  ROW 0: ['3.4.  passenger_counters.json   [JSON — IoT sensors, every 60 seconds]', '3.4.  passenger_counters.json   [JSON — IoT sensors, every 60 seconds]']
+  ROW 1: ['Volume', '~1.4M rows/day (1,000 sensors × 1,400 readings)']
+  ROW 2: ['Frequency', 'Every 60 seconds from sensor network']
+  ROW 3: ['Key Fields', 'sensor_id, location_type (SECURITY_LANE|IMMIGRATION|GATE_AREA|CHECK_IN_ZONE|\nBAGGAGE_CLAIM), location_name, terminal, zone_id, timestamp, pax_count_in, \npax_count_out, queue_length_estimate, avg_wait_time_minutes']
+  ROW 4: ['Sample', '{"sensor_id":"SEN_T1_SEC_01","location_type":"SECURITY_LANE",\n"terminal":"T1","zone_id":"Z01","timestamp":"2024-01-15T06:00:00","queue_length_estimate":42,"avg_wait_time_minutes":18}']
+
+=== TABLE 8 ===
+  ROW 0: ['3.5.  airline_sla_contracts.xlsx   [Excel / XLSX — Annual commercial contract]', '3.5.  airline_sla_contracts.xlsx   [Excel / XLSX — Annual commercial contract]']
+  ROW 1: ['Volume', '~50 airline rows']
+  ROW 2: ['Frequency', 'Annual refresh; occasional amendments']
+  ROW 3: ['Key Fields', 'airline_code, airline_name, min_turn_time_narrow_body_mins, min_turn_time_wide_body_mins, connection_time_domestic_mins, connection_time_international_mins, late_departure_penalty_inr_per_min, otp_target_pct']
+  ROW 4: ['Sample', 'Read with openpyxl; validate no duplicate airline_codes; all time values must be positive integers']
+
+=== TABLE 9 ===
+  ROW 0: ['3.6.  aircraft_master.csv   [CSV — Reference]', '3.6.  aircraft_master.csv   [CSV — Reference]']
+  ROW 1: ['Volume', '~500 aircraft rows']
+  ROW 2: ['Frequency', 'Weekly refresh']
+  ROW 3: ['Key Fields', 'aircraft_registration, aircraft_type_code, body_type (NARROW|WIDE), airline_code, seat_capacity, max_payload_kg, age_years, base_airport_iata']
+
+=== TABLE 10 ===
+  ROW 0: ['4', 'Technical Architecture']
+
+=== TABLE 11 ===
+  ROW 0: ['Layer', 'Technology', 'Ingestion Frequency']
+  ROW 1: ['Bronze — Flight Schedule', 'Delta (MERGE-based)', 'Every 15 minutes — same flight updates in place']
+  ROW 2: ['Bronze — Gate Events', 'Delta (append stream)', 'Real-time Kafka + hourly file batch']
+  ROW 3: ['Bronze — Baggage Scans', 'Delta (append)', 'Every 5 minutes batch']
+  ROW 4: ['Bronze — IoT Counters', 'Delta (append stream)', '60-second micro-batch']
+  ROW 5: ['Bronze — SLA + Aircraft', 'Delta (batch)', 'Daily/weekly reference refresh']
+  ROW 6: ['Silver — Flight Ops', 'Delta (UPSERT)', 'Every 15 minutes: joins schedule + gate events']
+  ROW 7: ['Silver — Delay Risk', 'Delta (overwrite)', 'Every 15 minutes: propagation calculation']
+  ROW 8: ['Gold — OTP + Utilization', 'Delta (daily overwrite)', 'Daily at midnight: full-day aggregation']
+  ROW 9: ['Gold — Security Prediction', 'Delta (hourly)', 'Hourly: rolling 30-day IoT averages']
+
+=== TABLE 12 ===
+  ROW 0: ['5', 'Project Tasks & Requirements']
+
+=== TABLE 13 ===
+  ROW 0: ['Task 1.1', 'Ingest Flight Schedule CSV — MERGE-based Bronze\nDesign decision: flight status changes 8–10 times per flight (SCH→BRD→DEP) — use MERGE not append\nMERGE INTO bronze.flight_schedule ON flight_id: update status, delay_minutes, gate on change\nKeep version history: add effective_ts column with each MERGE timestamp\nDQ: flight_id must be unique per daily schedule; scheduled_departure must be a valid future timestamp\nReferential integrity: aircraft_registration must exist in aircraft_master table']
+
+=== TABLE 14 ===
+  ROW 0: ['Task 1.2', 'Ingest Gate Events and Baggage Scans\nGate events JSON: Auto Loader streaming → append to bronze.gate_events, partition by event_date\nBaggage scans CSV: 5-minute micro-batch → append to bronze.baggage_scans\nDQ for gate events: event_type must be in known enum; flight_id must exist in flight schedule\nDQ for baggage: scan_status must be OK/EXCEPTION/MISREAD; bag_tag_number format validation\nVolume alert: if baggage scan count per hour < 5,000, trigger sensor health alert']
+
+=== TABLE 15 ===
+  ROW 0: ['Task 1.3', 'Ingest IoT Passenger Counter Data\nDesign: 1.4M rows/day from ~1,000 sensors — partition by terminal + event_date\n60-second micro-batch streaming from sensor network via Kafka or file landing\nDQ: queue_length_estimate must not be negative; avg_wait_time_minutes must be < 180\nSchema evolution: sensor firmware updates may add new fields — use mergeSchema=True\nStore raw sensor payload as JSON string in Bronze (sensor data formats change frequently)']
+
+=== TABLE 16 ===
+  ROW 0: ['Task 1.4', 'Load SLA Contracts XLSX and Aircraft Master CSV\nSLA XLSX: use openpyxl/pandas to parse; write to bronze.airline_sla Delta table\nValidate: every airline_code in flight_schedule must have an SLA contract — log gaps\nAircraft master: MERGE INTO on aircraft_registration (weekly refresh may update age_years)\nCross-validation: every aircraft_registration in flight schedule must exist in aircraft_master']
+
+=== TABLE 17 ===
+  ROW 0: ['Task 2.1', 'Build silver.flight_operations — Complete Operational Timeline\nJoin flight_schedule with gate_events to compute operational timestamps:\ngate_open_ts, boarding_start_ts, boarding_complete_ts, pushback_ts (= actual departure)\nDerive: gate_turn_time_mins (gate_released minus gate_open for prior inbound flight on same gate)\nDerive: boarding_duration_mins, delay_category (ON_TIME/MINOR/MODERATE/SEVERE)\nUPSERT using MERGE INTO on flight_id — refreshed every 15 minutes as new gate events arrive']
+
+=== TABLE 18 ===
+  ROW 0: ['Task 2.2', 'Compute Delay Propagation Risk\nFor each outbound flight: find the inbound flight using the same aircraft_registration\nJoin with airline_sla to get min_turn_time (narrow vs wide body)\navailable_turn_time = scheduled_departure - inbound_actual_arrival\nIf available_turn_time < min_turn_time: propagated_delay = min_turn_time - available_turn_time\nrisk_level: CRITICAL if propagated_delay > 60 mins, HIGH if 30–60, MEDIUM if 15–30\nWrite to silver.delay_propagation_risk — refreshed every 15 minutes']
+
+=== TABLE 19 ===
+  ROW 0: ['Task 2.3', 'Build Baggage Journey and Misconnect Risk\nFor each bag: construct complete scan journey from CHECK_IN to CAROUSEL delivery\nCompute: time_from_checkin_to_aircraft_load_mins, has_scan_exception (any EXCEPTION status)\nFor transfer bags (connecting_flight_id IS NOT NULL):\nconnection_time_available = outbound_scheduled_departure - inbound_actual_arrival\nJoin airline_sla to get connection_time_domestic or connection_time_international threshold\nFlag AT_RISK_MISCONNECT if connection_time_available < threshold from SLA contract']
+
+=== TABLE 20 ===
+  ROW 0: ['Task 2.4', 'Aggregate IoT Sensor Data — 15-Minute Zone Occupancy\n15-minute tumbling window aggregations per zone_id:\navg_queue_length, max_queue_length, avg_wait_time_mins, cumulative_pax_through\nzone_utilization_pct: avg_queue / zone_rated_capacity (hardcoded capacity lookup table)\nFlag CONGESTED if avg_wait_time_mins > 20 in any 15-minute bucket\nWrite to silver.zone_occupancy_15min — base data for security prediction model']
+
+=== TABLE 21 ===
+  ROW 0: ['Task 3.1', "OTP Daily Report (DGCA Regulatory Table)\nPer airline + route + departure_date: total_flights, on_time_count, otp_14_pct (delay < 14 min)\nAlso compute: otp_0_pct, avg_delay_minutes, p95_delay_minutes, cancellation_count\nCompare otp_14_pct vs airline's otp_target_pct from SLA: compliance_status = MEETING_SLA / BELOW_SLA / CRITICAL\nPartition by departure_date; Z-ORDER by airline_code for fast regulatory query\nSLA: ready by 06:00 AM — submitted to DGCA monthly in aggregated form"]
+
+=== TABLE 22 ===
+  ROW 0: ['Task 3.2', 'Gate Utilization Summary\nPer gate + operational_date: scheduled_flights, actual_flights, total_occupied_mins, total_idle_mins\navg_turn_time_mins, turn_time_vs_minimum_ratio (actual / SLA minimum)\nutilization_pct: occupied_mins / total_available_mins_per_day × 100\nAlert tier: OVER_UTILIZED if > 90%, UNDER_UTILIZED if < 40%\nUsed by airport commercial team to rebalance gate assignments quarterly']
+
+=== TABLE 23 ===
+  ROW 0: ['Task 3.3', "Security Staffing Recommendation Table\nUsing 30-day rolling average from silver.zone_occupancy_15min per (day_of_week, time_slot)\nJoin with today's flight schedule: estimate passenger wave (departure - 90 min = check-in peak)\npredicted_queue_length per security zone per 15-minute slot\nrecommended_lanes_open: predicted_queue / lanes_capacity_per_hour × 15 min factor\nWrite to gold.security_staffing_recommendation — used by terminal operations manager"]
+
+=== TABLE 24 ===
+  ROW 0: ['Task 4.1', 'Airflow Dual-Tier DAG — airport_ops_pipeline\nTier 1 — Every 15 minutes (*/15 * * * *): flight schedule MERGE → gate events Bronze → silver.flight_operations update → delay risk refresh → push HIGH/CRITICAL alerts to operations dashboard\nTier 2 — Daily at 00:05 AM (5 0 * * *): IoT 15-min aggregation → OTP Gold report → gate utilization → security staffing → baggage SLA audit → notifications\nPrevent overlap: use max_active_runs=1 on 15-min DAG; use depends_on_past=False to skip if previous run still running\nSLA: OTP report must be ready by 06:00 AM — SLA alert to airport CIO if breached\nData freshness: if flight schedule Bronze has not been updated in 20 minutes, trigger AODB connectivity alert']
+
+=== TABLE 25 ===
+  ROW 0: ['6', 'Data Modeling Requirements']
+
+=== TABLE 26 ===
+  ROW 0: ['Table', 'Type', 'Grain', 'Key Columns']
+  ROW 1: ['flight_operations', 'Silver Operational', 'One row per flight per day', 'flight_id, gate_id, boarding_start_ts, pushback_ts, delay_mins, delay_category, gate_turn_time_mins']
+  ROW 2: ['delay_propagation_risk', 'Silver Alert', 'One row per at-risk outbound flight', 'flight_id, inbound_flight_id, available_turn_time, propagated_delay_mins, risk_level']
+  ROW 3: ['baggage_journey', 'Silver', 'One row per bag', 'bag_tag_number, flight_id, check_in_ts, load_ts, scan_exception, is_transfer, misconnect_risk']
+  ROW 4: ['zone_occupancy_15min', 'Silver IoT', 'zone + 15-min bucket', 'zone_id, time_bucket, avg_queue_length, avg_wait_time_mins, congestion_flag']
+  ROW 5: ['otp_daily_report', 'Gold Regulatory', 'airline + route + date', 'total_flights, otp_14_pct, avg_delay_mins, compliance_status, cancellation_count']
+  ROW 6: ['gate_utilization_summary', 'Gold Operations', 'gate + date', 'utilization_pct, avg_turn_time_mins, alert_tier, idle_mins, occupied_mins']
+  ROW 7: ['security_staffing_recommendation', 'Gold Prediction', 'zone + date + time_slot', 'predicted_queue_length, recommended_lanes_open, confidence_level']
+
+=== TABLE 27 ===
+  ROW 0: ['7', 'Deliverables']
+
+=== TABLE 28 ===
+  ROW 0: ['8', 'Success Criteria']
+
+=== TABLE 29 ===
+  ROW 0: ['Metric', 'Target', 'Measurement']
+  ROW 1: ['Delay risk detection lead time', '≥ 2 hours before departure', 'Compare alert_ts vs scheduled_departure']
+  ROW 2: ['OTP report availability', 'By 06:00 AM daily', 'Airflow Gold OTP task completion time']
+  ROW 3: ['Baggage misconnect prediction accuracy', '≥ 80% of actual misconnects flagged', 'Compare AT_RISK_MISCONNECT flags vs actual events']
+  ROW 4: ['Gate utilization data freshness', '< 20 minutes lag', 'max(silver update_ts) vs current_timestamp']
+  ROW 5: ['15-min pipeline latency', '< 15 minutes end-to-end', 'AODB refresh ts → delay_risk table update ts']
+  ROW 6: ['Security queue prediction error', '< 25% MAPE', 'Predicted vs actual queue length daily comparison']
+
+=== TABLE 30 ===
+  ROW 0: ['9', 'Dataset Specifications']
+
+=== TABLE 31 ===
+  ROW 0: ['Dataset', 'Volume / Rows', 'History', 'Generation Notes']
+  ROW 1: ['Flight Schedule CSV', '360 rows/refresh; 52K/day (with updates)', '30 days', 'Refresh every 15 min with status changes']
+  ROW 2: ['Gate Events JSON', '~2,000 events/day', '30 days', 'Real-time; 8–10 events per flight lifecycle']
+  ROW 3: ['Baggage Scans CSV', '150K scans/day; 4.5M/month', '30 days', '5-min batch; include EXCEPTION cases']
+  ROW 4: ['IoT Passenger Counters', '1.4M rows/day; 42M/month', '30 days', '60-second cadence; peak/off-peak patterns']
+  ROW 5: ['Airline SLA XLSX', '50 airlines', 'Current', 'Annual; manually maintained']
+  ROW 6: ['Aircraft Master CSV', '500 aircraft', 'Current', 'Weekly; VT-XXX registration format']

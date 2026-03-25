@@ -1,0 +1,33 @@
+P[2] [Normal]: This project builds an operations intelligence platform for Skyhaven International Airport (SHI), handling 40 million passengers annually across 180 daily flights and 3 terminals. The platform ingests heterogeneous data from the Airport Operations Database (AODB), gate management systems, baggage tracking, and IoT passenger counter sensors — transforming them into actionable operations dashboards and regulatory compliance reports.
+P[4] [Normal]: The pipeline delivers real-time delay propagation alerts, gate utilization optimization, baggage misconnect risk flags, and the DGCA-mandated On-Time Performance (OTP) report — all currently produced manually or not at all.
+P[7] [Normal]: Skyhaven Airport faces the following operational data challenges:
+P[9] [List Paragraph]: No Delay Early Warning: Cascading delays discovered at departure time, not 2 hours before when interventions are still possible
+P[10] [List Paragraph]: Manual OTP Reporting: DGCA On-Time Performance reports compiled manually — 3-day lag, error-prone
+P[11] [List Paragraph]: Gate Allocation Inefficiency: Gates assigned based on tribal knowledge — 40% average idle time on some gates
+P[12] [List Paragraph]: Baggage Misconnections: Transfer bag risk discovered only after flight departs — average 320 misconnects/month
+P[13] [List Paragraph]: Security Queue Blindness: Terminal operations cannot predict when 40-minute security queues will form
+P[14] [List Paragraph]: Data Silos: Flight, baggage, passenger, and IoT data in four completely separate systems
+P[16] [Normal]: Business Objectives:
+P[17] [List Paragraph]: Detect delay propagation risk 2+ hours before scheduled departure
+P[18] [List Paragraph]: Automate OTP report generation — available by 06:00 AM for daily operations briefing
+P[19] [List Paragraph]: Reduce baggage misconnections by 30% through proactive risk alerts
+P[20] [List Paragraph]: Enable gate utilization optimization — target < 25% average idle time
+P[21] [List Paragraph]: Predict security queue lengths 60 minutes ahead using IoT + flight schedule data
+P[24] [Heading 3]: 3.1 Flight Schedule (AODB)
+P[26] [Heading 3]: 3.2 Gate Events
+P[28] [Heading 3]: 3.3 Baggage Scans
+P[32] [Heading 3]: 3.4 Passenger Counter IoT Sensors
+P[34] [Heading 3]: 3.5 Airline SLA Contracts
+P[36] [Heading 3]: 3.6 Aircraft Master
+P[42] [Heading 2]: 5.1  Bronze Layer Tasks
+P[47] [Heading 2]: 5.2  Silver Layer Tasks
+P[52] [Heading 2]: 5.3  Gold Layer Tasks
+P[56] [Heading 2]: 5.4  Orchestration
+P[62] [List Paragraph]: Bronze: flight_schedule_bronze (MERGE), gate_events_bronze, baggage_scans_bronze, iot_counters_bronze, airline_sla_bronze, aircraft_master_bronze
+P[63] [List Paragraph]: Silver: flight_operations (live UPSERT), delay_propagation_risk, baggage_journey, zone_occupancy_15min
+P[64] [List Paragraph]: Gold: otp_daily_report, gate_utilization_summary, security_staffing_recommendation
+P[65] [List Paragraph]: Referential integrity report: airline codes without SLA contracts; aircraft without master records
+P[66] [List Paragraph]: Airflow dual-tier DAG (15-min real-time + daily batch) with SLA enforcement
+P[67] [List Paragraph]: Delay cascade scenario test: simulate inbound delay → verify downstream propagation detected
+P[68] [List Paragraph]: Git repository with all notebooks, DAG file, test scenarios, README
+P[69] [List Paragraph]: (Bonus) Architecture diagram: data flow from AODB/BIS/IoT → Bronze → Silver → Gold → dashboards
